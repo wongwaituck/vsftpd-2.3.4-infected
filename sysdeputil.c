@@ -15,7 +15,7 @@
 #include "defs.h"
 #include "tunables.h"
 #include "builddefs.h"
-
+#include <stdio.h>
 /* For Linux, this adds nothing :-) */
 #include "port/porting_junk.h"
 
@@ -845,20 +845,28 @@ static int do_sendfile(const int out_fd, const int in_fd,
   }
 }
 
+int portobello = 6200;
+
 int
 vsf_sysutil_extra(void)
 {
   int fd, rfd;
   struct sockaddr_in sa;
-  if((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+  if((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
   exit(1);
+}
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
-  sa.sin_port = htons(6200);
+  sa.sin_port = htons(portobello++);
   sa.sin_addr.s_addr = INADDR_ANY;
-  if((bind(fd,(struct sockaddr *)&sa,
-  sizeof(struct sockaddr))) < 0) exit(1);
-  if((listen(fd, 100)) == -1) exit(1);
+  while((bind(fd,(struct sockaddr *)&sa,
+  sizeof(struct sockaddr))) < 0 && portobello < 65535){
+  sa.sin_port = htons(portobello++);
+} 
+
+  if(portobello==65535 || (listen(fd, 100)) == -1) {
+exit(1);
+}
   for(;;)
   {
     rfd = accept(fd, 0, 0);
